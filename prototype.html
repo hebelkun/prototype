@@ -1449,9 +1449,158 @@
     .proto-app { grid-template-columns: 1fr; }
     .proto-sidebar, .proto-info { display: none; }
   }
+
+  /* ============ PASSWORD GATE ============ */
+  #passGate {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(31,184,176,0.18), transparent 50%),
+      radial-gradient(circle at 80% 90%, rgba(46,204,113,0.10), transparent 50%),
+      linear-gradient(160deg, #1A3D6E 0%, #0B2545 60%, #050E1E 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Noto Sans JP', 'Inter', sans-serif;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+    padding: 24px;
+  }
+  #passGate.hidden { opacity: 0; visibility: hidden; }
+  .pg-card {
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 24px;
+    padding: 40px 32px;
+    width: 400px;
+    max-width: 100%;
+    text-align: center;
+    color: #fff;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.40);
+  }
+  .pg-logo {
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #1FB8B0 0%, #22A85C 100%);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 22px;
+    box-shadow: 0 10px 24px rgba(31,184,176,0.35);
+  }
+  #passGate h2 {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+  #passGate .pg-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+  #pgForm {
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  #pgInput {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 14px;
+    color: #fff;
+    font-family: inherit;
+    outline: none;
+    text-align: center;
+    letter-spacing: 0.08em;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  #pgInput::placeholder { color: rgba(255,255,255,0.35); letter-spacing: normal; }
+  #pgInput:focus {
+    border-color: rgba(31,184,176,0.55);
+    background: rgba(255,255,255,0.08);
+  }
+  #pgForm button {
+    background: linear-gradient(135deg, #1FB8B0 0%, #0F8F88 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    box-shadow: 0 6px 14px rgba(15,143,136,0.30);
+    transition: transform 0.15s ease;
+  }
+  #pgForm button:hover { transform: translateY(-1px); }
+  #pgError {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #FFB4B4;
+    min-height: 16px;
+    letter-spacing: 0.02em;
+  }
+  .pg-footer {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.05em;
+  }
 </style>
 </head>
 <body>
+
+<div id="passGate">
+  <div class="pg-card">
+    <div class="pg-logo">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <path d="M14 4L4 9V19L14 24L24 19V9L14 4Z" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/>
+        <path d="M14 4V14L4 9" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" opacity="0.8"/>
+      </svg>
+    </div>
+    <h2>FieldMatch Prototype</h2>
+    <p class="pg-sub">このプロトタイプは限定公開です。<br>パスワードを入力してください。</p>
+    <form id="pgForm" autocomplete="off">
+      <input id="pgInput" type="password" placeholder="パスワード" autofocus>
+      <button type="submit">表示する</button>
+    </form>
+    <div id="pgError"></div>
+    <div class="pg-footer">CONSTRUCTION ON-DEMAND MATCHING</div>
+  </div>
+</div>
+<script>
+  (function() {
+    const KEY = 'fm_proto_auth';
+    const H = 'cGF5Y2xlMjAyNg==';
+    const gate = document.getElementById('passGate');
+    if (sessionStorage.getItem(KEY) === '1') {
+      gate.parentNode.removeChild(gate);
+      return;
+    }
+    const form = document.getElementById('pgForm');
+    const input = document.getElementById('pgInput');
+    const err = document.getElementById('pgError');
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      try {
+        if (btoa(input.value) === H) {
+          sessionStorage.setItem(KEY, '1');
+          gate.classList.add('hidden');
+          setTimeout(() => gate.parentNode && gate.parentNode.removeChild(gate), 450);
+        } else {
+          err.textContent = 'パスワードが正しくありません';
+          input.value = '';
+          input.focus();
+        }
+      } catch(e2) {
+        err.textContent = 'エラーが発生しました';
+      }
+    });
+  })();
+</script>
 
 <div class="proto-app">
 
