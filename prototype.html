@@ -1,0 +1,2360 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FieldMatch — Interactive Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0B2545;
+    --navy-2: #13315C;
+    --teal: #1FB8B0;
+    --teal-dark: #0F8F88;
+    --green: #2ECC71;
+    --green-dark: #22A85C;
+    --bg: #F4F6FA;
+    --card: #FFFFFF;
+    --line: #E6EAF0;
+    --line-soft: #F0F2F7;
+    --text: #0E1726;
+    --text-2: #4A5568;
+    --text-3: #8A93A6;
+    --warn: #F59E0B;
+    --shadow-sm: 0 1px 2px rgba(11, 37, 69, 0.04), 0 1px 3px rgba(11, 37, 69, 0.06);
+    --shadow-md: 0 6px 16px rgba(11, 37, 69, 0.08), 0 2px 6px rgba(11, 37, 69, 0.05);
+    --shadow-phone: 0 40px 80px rgba(11, 37, 69, 0.25), 0 16px 32px rgba(11, 37, 69, 0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+  html, body {
+    font-family: 'Noto Sans JP', 'Inter', system-ui, sans-serif;
+    background: radial-gradient(circle at 20% 10%, #1A3D6E 0%, #0B2545 60%, #050E1E 100%);
+    color: var(--text);
+    line-height: 1.4;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ============ LAYOUT ============ */
+  .proto-app {
+    display: grid;
+    grid-template-columns: 280px 1fr 320px;
+    min-height: 100vh;
+    gap: 0;
+  }
+
+  /* ============ SIDEBAR (FLOW) ============ */
+  .proto-sidebar {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 28px 24px;
+    color: #fff;
+    overflow-y: auto;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+  .ps-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .ps-logo {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--teal) 0%, var(--green-dark) 100%);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 16px rgba(31, 184, 176, 0.30);
+  }
+  .ps-brand h1 {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .ps-brand p {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 0.08em;
+    margin-top: 2px;
+  }
+  .ps-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.4);
+    margin-bottom: 14px;
+  }
+  .flow-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 28px;
+  }
+  .flow-node {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+  }
+  .flow-node:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .flow-node.active {
+    background: rgba(31, 184, 176, 0.12);
+    border-color: rgba(31, 184, 176, 0.35);
+  }
+  .flow-num {
+    width: 26px; height: 26px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .flow-node.active .flow-num {
+    background: var(--teal);
+    color: #fff;
+  }
+  .flow-node.visited .flow-num {
+    background: rgba(46, 204, 113, 0.20);
+    color: var(--green);
+  }
+  .flow-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .flow-text .nm {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .flow-text .ds {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 1px;
+  }
+  .flow-node.active .flow-text .nm { color: #fff; }
+
+  .flow-legend {
+    margin-top: 8px;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .legend-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 3px 0;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+  }
+
+  /* ============ STAGE ============ */
+  .proto-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 32px;
+    position: relative;
+  }
+  .stage-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .stage-btn {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: #fff;
+  }
+  .stage-btn:hover {
+    background: rgba(255, 255, 255, 0.10);
+    transform: translateY(-1px);
+  }
+  .stage-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .stage-title {
+    flex: 1;
+    color: #fff;
+    text-align: center;
+  }
+  .stage-title h2 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .stage-title p {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 2px;
+    letter-spacing: 0.04em;
+    font-family: 'Inter', sans-serif;
+  }
+  .stage-progress {
+    width: 100%;
+    max-width: 480px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 36px;
+  }
+  .stage-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--teal), var(--green));
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ============ PHONE FRAME ============ */
+  .phone {
+    width: 380px;
+    height: 800px;
+    background: #0E1726;
+    border-radius: 48px;
+    padding: 10px;
+    box-shadow: var(--shadow-phone);
+    position: relative;
+  }
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 116px;
+    height: 30px;
+    background: #0E1726;
+    border-radius: 16px;
+    z-index: 10;
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: var(--card);
+    border-radius: 38px;
+    overflow: hidden;
+    position: relative;
+  }
+  .screens-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(40px);
+    transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+  .screen.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+  .screen.exit-left {
+    transform: translateX(-40px);
+  }
+
+  /* ============ HINT HOTSPOTS ============ */
+  .hint-bar {
+    width: 100%;
+    max-width: 480px;
+    margin-top: 28px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .hint-bar strong { color: var(--teal); font-weight: 600; }
+
+  /* tap targets get a subtle hover */
+  [data-nav] {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  [data-nav]:hover {
+    transform: translateY(-1px);
+  }
+  [data-nav]:active {
+    transform: translateY(0);
+  }
+
+  /* hotspot flash animation */
+  @keyframes hotspot {
+    0% { box-shadow: 0 0 0 0 rgba(31, 184, 176, 0); }
+    50% { box-shadow: 0 0 0 8px rgba(31, 184, 176, 0.4); }
+    100% { box-shadow: 0 0 0 0 rgba(31, 184, 176, 0); }
+  }
+  .show-hotspots [data-nav] {
+    animation: hotspot 1.6s ease-in-out infinite;
+    border-radius: 12px;
+  }
+
+  /* ============ INFO PANEL ============ */
+  .proto-info {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 28px 24px;
+    color: #fff;
+    overflow-y: auto;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+  .pi-section { margin-bottom: 24px; }
+  .pi-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.4);
+    margin-bottom: 10px;
+  }
+  .pi-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .pi-card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .pi-card p {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.6;
+  }
+  .transitions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .trans-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .trans-item:hover {
+    background: rgba(31, 184, 176, 0.10);
+    border-color: rgba(31, 184, 176, 0.30);
+    color: #fff;
+  }
+  .trans-item .arrow {
+    color: var(--teal);
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .trans-item .target {
+    font-weight: 700;
+    color: #fff;
+  }
+  .pi-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .pi-toggle .switch {
+    width: 36px; height: 20px;
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s ease;
+  }
+  .pi-toggle .switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+  }
+  .pi-toggle.on .switch { background: var(--teal); }
+  .pi-toggle.on .switch::after { transform: translateX(16px); }
+
+  /* ============ COMMON UI ELEMENTS (copied from index.html) ============ */
+  .status-bar {
+    height: 44px;
+    padding: 14px 30px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 5;
+  }
+  .status-bar.on-dark { color: #fff; }
+  .status-bar .right { display: flex; align-items: center; gap: 5px; }
+
+  .scroll-area { flex: 1; overflow: hidden; position: relative; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .pill.teal { background: rgba(31, 184, 176, 0.12); color: var(--teal-dark); }
+  .pill.green { background: rgba(46, 204, 113, 0.12); color: var(--green-dark); }
+  .pill.navy { background: rgba(11, 37, 69, 0.08); color: var(--navy); }
+  .pill.warn { background: rgba(245, 158, 11, 0.14); color: #B97509; }
+  .pill.gray { background: var(--line-soft); color: var(--text-2); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px;
+    border: none;
+    border-radius: 14px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  .btn-primary { background: var(--navy); color: #fff; padding: 15px 22px; font-size: 15px; box-shadow: 0 6px 14px rgba(11, 37, 69, 0.25); }
+  .btn-teal { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: #fff; padding: 15px 22px; font-size: 15px; box-shadow: 0 6px 14px rgba(15, 143, 136, 0.30); }
+  .btn-green { background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%); color: #fff; padding: 15px 22px; font-size: 15px; box-shadow: 0 6px 14px rgba(34, 168, 92, 0.30); }
+  .btn-outline { background: #fff; color: var(--navy); border: 1.5px solid var(--line); padding: 13px 20px; font-size: 14px; }
+  .btn-ghost { background: var(--line-soft); color: var(--navy); padding: 13px 20px; font-size: 14px; }
+
+  .star { color: #FFB400; font-size: 11px; letter-spacing: -1px; }
+
+  /* MAP */
+  .map {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 30% 40%, rgba(31, 184, 176, 0.05), transparent 40%),
+      radial-gradient(circle at 70% 60%, rgba(46, 204, 113, 0.05), transparent 40%),
+      linear-gradient(180deg, #EEF2F7 0%, #E4EAF2 100%);
+    overflow: hidden;
+  }
+  .map-grid {
+    position: absolute; inset: -20%;
+    background-image:
+      linear-gradient(rgba(11, 37, 69, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(11, 37, 69, 0.04) 1px, transparent 1px);
+    background-size: 28px 28px;
+    transform: perspective(800px) rotateX(8deg);
+  }
+  .map-road { position: absolute; background: rgba(255, 255, 255, 0.85); box-shadow: 0 0 0 1px rgba(11, 37, 69, 0.04); }
+  .map-block { position: absolute; background: rgba(255, 255, 255, 0.6); border-radius: 3px; box-shadow: 0 0 0 1px rgba(11, 37, 69, 0.03); }
+  .map-green { position: absolute; background: rgba(46, 204, 113, 0.12); border-radius: 50%; }
+  .map-pin { position: absolute; transform: translate(-50%, -100%); z-index: 3; }
+  .pin-bubble {
+    background: var(--navy); color: #fff;
+    font-size: 11px; font-weight: 700;
+    padding: 6px 10px; border-radius: 12px;
+    box-shadow: 0 6px 14px rgba(11, 37, 69, 0.25);
+    white-space: nowrap; position: relative;
+  }
+  .pin-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -5px; left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 8px; height: 8px;
+    background: inherit;
+  }
+  .pin-bubble.teal { background: var(--teal-dark); }
+  .pin-bubble.green { background: var(--green-dark); }
+
+  .user-dot {
+    position: absolute;
+    width: 18px; height: 18px;
+    background: var(--teal);
+    border: 3px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(11, 37, 69, 0.2);
+    z-index: 4;
+    transform: translate(-50%, -50%);
+  }
+  .user-dot::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    background: rgba(31, 184, 176, 0.15);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { transform: scale(0.8); opacity: 1; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+
+  .worker-avatar-pin { position: absolute; transform: translate(-50%, -50%); z-index: 3; }
+  .worker-avatar-pin .av {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 10px rgba(11, 37, 69, 0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: #fff; font-size: 14px;
+  }
+  .worker-avatar-pin .status {
+    position: absolute;
+    bottom: -2px; right: -2px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: var(--green);
+  }
+
+  /* SCREEN 1 — ROLE SELECTION */
+  .s1-bg {
+    flex: 1;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(31, 184, 176, 0.18), transparent 40%),
+      radial-gradient(circle at 90% 0%, rgba(46, 204, 113, 0.12), transparent 50%),
+      linear-gradient(180deg, #0B2545 0%, #13315C 60%, #1A3D6E 100%);
+    color: #fff;
+    padding: 24px 28px 40px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  .s1-bg::after {
+    content: '';
+    position: absolute;
+    top: 60px; right: -60px;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(31, 184, 176, 0.18), transparent 70%);
+  }
+  .s1-logo {
+    width: 64px; height: 64px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--teal) 0%, var(--green-dark) 100%);
+    display: flex; align-items: center; justify-content: center;
+    margin: 28px 0 36px;
+    box-shadow: 0 10px 24px rgba(31, 184, 176, 0.35);
+  }
+  .s1-title { font-size: 28px; font-weight: 800; line-height: 1.3; margin-bottom: 12px; }
+  .s1-sub { font-size: 14px; line-height: 1.7; color: rgba(255, 255, 255, 0.7); margin-bottom: 40px; }
+  .s1-question { font-size: 13px; color: rgba(255, 255, 255, 0.5); letter-spacing: 0.05em; margin-bottom: 16px; }
+  .role-card {
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 16px;
+    position: relative;
+    z-index: 1;
+  }
+  .role-card.primary { background: #fff; color: var(--navy); border: none; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); }
+  .role-card .role-ico {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    background: rgba(31, 184, 176, 0.18);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .role-card.primary .role-ico { background: rgba(31, 184, 176, 0.15); }
+  .role-card .role-body { flex: 1; }
+  .role-card .role-body h4 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .role-card .role-body p { font-size: 12px; opacity: 0.7; line-height: 1.4; }
+  .role-card .role-arrow { opacity: 0.5; }
+  .s1-bottom { margin-top: auto; text-align: center; font-size: 12px; color: rgba(255, 255, 255, 0.5); padding-top: 24px; }
+  .s1-bottom a { color: var(--teal); font-weight: 600; }
+
+  /* SCREEN 2 — FIELD PARTNER HOME */
+  .s2-top { position: absolute; top: 44px; left: 0; right: 0; padding: 12px 16px; z-index: 5; }
+  .s2-search {
+    background: #fff;
+    border-radius: 16px;
+    padding: 12px 16px;
+    box-shadow: var(--shadow-md);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .s2-search-input { flex: 1; font-size: 13px; color: var(--text-2); }
+  .s2-search-input strong { color: var(--text); font-weight: 600; }
+  .s2-icon-btn {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    background: var(--line-soft);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .s2-icon-btn .badge {
+    position: absolute;
+    top: -3px; right: -3px;
+    background: #EF4444;
+    color: #fff;
+    font-size: 9px; font-weight: 700;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #fff;
+  }
+  .s2-filters { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; }
+  .filter-chip {
+    background: #fff;
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--navy);
+    box-shadow: var(--shadow-sm);
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .filter-chip.active { background: var(--navy); color: #fff; }
+  .s2-banner {
+    position: absolute;
+    top: 175px; left: 16px;
+    background: var(--navy);
+    color: #fff;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 12px; font-weight: 600;
+    z-index: 5;
+    box-shadow: 0 8px 18px rgba(11, 37, 69, 0.25);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .s2-banner .num {
+    background: var(--teal); color: #fff;
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 12px;
+  }
+  .s2-locate {
+    position: absolute;
+    right: 16px;
+    bottom: 290px;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-md);
+    z-index: 5;
+  }
+  .s2-sheet {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: #fff;
+    border-radius: 28px 28px 0 0;
+    box-shadow: 0 -10px 30px rgba(11, 37, 69, 0.12);
+    padding: 12px 16px 24px;
+    z-index: 6;
+  }
+  .sheet-handle {
+    width: 38px; height: 4px;
+    background: #DCE1E9;
+    border-radius: 2px;
+    margin: 0 auto 12px;
+  }
+  .s2-sheet-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 12px;
+    padding: 0 2px;
+  }
+  .s2-sheet-head h3 { font-size: 15px; font-weight: 700; }
+  .s2-sheet-head a { font-size: 12px; color: var(--teal-dark); font-weight: 600; }
+  .job-cards {
+    display: flex; gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin: 0 -16px;
+    padding-left: 16px; padding-right: 16px;
+  }
+  .job-card {
+    flex-shrink: 0;
+    width: 240px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .job-card.featured { background: linear-gradient(135deg, #0B2545 0%, #13315C 100%); color: #fff; border: none; }
+  .job-card .jc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .job-card .jc-title { font-size: 14px; font-weight: 700; line-height: 1.3; margin-bottom: 4px; }
+  .job-card .jc-meta { font-size: 11px; opacity: 0.7; }
+  .job-card.featured .jc-meta { color: rgba(255,255,255,0.7); }
+  .job-card .jc-row { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .job-card.featured .jc-row { border-top-color: rgba(255,255,255,0.15); }
+  .job-card .jc-price { font-size: 18px; font-weight: 800; color: var(--navy); letter-spacing: -0.01em; }
+  .job-card.featured .jc-price { color: #fff; }
+  .job-card .jc-price .yen { font-size: 12px; opacity: 0.7; font-weight: 600; }
+  .job-card .jc-price .unit { font-size: 11px; font-weight: 500; color: var(--text-3); margin-left: 2px; }
+  .job-card.featured .jc-price .unit { color: rgba(255,255,255,0.6); }
+
+  /* TABBAR */
+  .tabbar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: #fff;
+    border-top: 1px solid var(--line);
+    padding: 10px 8px 24px;
+    display: flex; justify-content: space-around;
+    z-index: 10;
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 4px;
+    color: var(--text-3);
+    font-size: 10px; font-weight: 600;
+    padding: 4px;
+  }
+  .tab.active { color: var(--navy); }
+
+  /* SCREEN 3 — ORDERER HOME */
+  .s3-top { position: absolute; top: 44px; left: 0; right: 0; padding: 12px 16px; z-index: 5; }
+  .s3-greet {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 12px 16px;
+    box-shadow: var(--shadow-md);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .s3-greet .av {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--navy), var(--teal-dark));
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+  }
+  .s3-greet .gtxt { flex: 1; }
+  .s3-greet h4 { font-size: 13px; font-weight: 700; }
+  .s3-greet p { font-size: 11px; color: var(--text-3); }
+  .s3-req-box {
+    margin-top: 10px;
+    background: var(--navy);
+    color: #fff;
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 6px 18px rgba(11, 37, 69, 0.20);
+  }
+  .s3-req-box .icn {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: rgba(31, 184, 176, 0.25);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .s3-req-box .tx { flex: 1; }
+  .s3-req-box .tx h5 { font-size: 13px; font-weight: 700; }
+  .s3-req-box .tx p { font-size: 11px; color: rgba(255,255,255,0.6); }
+  .s3-sheet {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: #fff;
+    border-radius: 28px 28px 0 0;
+    box-shadow: 0 -10px 30px rgba(11, 37, 69, 0.12);
+    padding: 12px 0 24px;
+    max-height: 380px;
+    z-index: 6;
+    display: flex; flex-direction: column;
+  }
+  .s3-sheet-head {
+    padding: 0 18px 12px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--line);
+  }
+  .s3-sheet-head h3 { font-size: 15px; font-weight: 700; }
+  .s3-sheet-head .count { font-size: 11px; color: var(--text-3); }
+  .s3-sheet-tabs {
+    display: flex;
+    padding: 10px 16px 0;
+    gap: 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .s3-tab {
+    font-size: 13px; font-weight: 600;
+    color: var(--text-3);
+    padding: 6px 0 10px;
+    border-bottom: 2px solid transparent;
+  }
+  .s3-tab.active { color: var(--navy); border-bottom-color: var(--teal); }
+  .worker-list { overflow-y: auto; padding: 4px 0; }
+  .worker-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .worker-row .wav {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 16px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .worker-row .wav.g1 { background: linear-gradient(135deg, #20A0B0, #0F8F88); }
+  .worker-row .wav.g2 { background: linear-gradient(135deg, #4A6FA5, #2C4870); }
+  .worker-row .wav.g3 { background: linear-gradient(135deg, #5E8B73, #3F6951); }
+  .worker-row .wav .ws {
+    position: absolute; bottom: 0; right: 0;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--green); border: 2px solid #fff;
+  }
+  .worker-row .wbody { flex: 1; min-width: 0; }
+  .worker-row .wname { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .worker-row .wmeta {
+    font-size: 11px; color: var(--text-3);
+    margin-top: 2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .worker-row .wmeta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-3); }
+  .worker-row .wskills { display: flex; gap: 4px; margin-top: 6px; }
+  .worker-row .wact {
+    display: flex; flex-direction: column; gap: 4px;
+    align-items: flex-end;
+  }
+  .mini-btn {
+    background: var(--teal-dark); color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 11px; font-weight: 700;
+    font-family: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .mini-btn.outline { background: #fff; color: var(--navy); border: 1px solid var(--line); }
+
+  /* SCREEN 4 — JOB DETAIL */
+  .s4-hero {
+    background: linear-gradient(135deg, #0B2545 0%, #13315C 70%, #1A3D6E 100%);
+    color: #fff;
+    padding: 16px 20px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .s4-hero::after {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(31, 184, 176, 0.20), transparent 70%);
+  }
+  .s4-nav {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px;
+    position: relative; z-index: 1;
+  }
+  .nav-btn {
+    width: 36px; height: 36px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .s4-nav h3 { font-size: 14px; font-weight: 700; }
+  .s4-tags { display: flex; gap: 6px; margin-bottom: 14px; position: relative; z-index: 1; }
+  .s4-tags .pill { background: rgba(255, 255, 255, 0.16); color: #fff; backdrop-filter: blur(10px); }
+  .s4-tags .pill.urgent { background: rgba(245, 158, 11, 0.30); color: #FFCB6B; }
+  .s4-title {
+    font-size: 22px; font-weight: 800;
+    line-height: 1.3; margin-bottom: 10px;
+    letter-spacing: -0.01em;
+    position: relative; z-index: 1;
+  }
+  .s4-company {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    display: flex; align-items: center; gap: 6px;
+    position: relative; z-index: 1;
+  }
+  .s4-pay-box {
+    margin: -18px 16px 0;
+    background: #fff;
+    border-radius: 18px;
+    padding: 16px 18px;
+    box-shadow: 0 10px 24px rgba(11, 37, 69, 0.12);
+    display: flex; align-items: center; justify-content: space-between;
+    position: relative; z-index: 2;
+  }
+  .s4-pay-box .label { font-size: 11px; color: var(--text-3); letter-spacing: 0.05em; margin-bottom: 2px; }
+  .s4-pay-box .price { font-size: 24px; font-weight: 800; color: var(--navy); letter-spacing: -0.02em; }
+  .s4-pay-box .price .yen { font-size: 14px; opacity: 0.6; }
+  .s4-pay-box .price .unit { font-size: 12px; color: var(--text-3); font-weight: 500; }
+  .s4-pay-box .ppl {
+    text-align: right;
+    background: rgba(46, 204, 113, 0.12);
+    color: var(--green-dark);
+    padding: 8px 12px;
+    border-radius: 12px;
+  }
+  .s4-pay-box .ppl .nm { font-size: 16px; font-weight: 800; }
+  .s4-pay-box .ppl .lb { font-size: 10px; }
+  .s4-body { padding: 20px 20px 20px; overflow-y: auto; flex: 1; }
+  .s4-section { margin-bottom: 20px; }
+  .s4-section h4 {
+    font-size: 13px; font-weight: 700; color: var(--navy);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .s4-section h4::before {
+    content: '';
+    width: 3px; height: 14px;
+    background: var(--teal);
+    border-radius: 2px;
+  }
+  .s4-info-row {
+    display: flex;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 12px;
+  }
+  .s4-info-row:last-child { border-bottom: none; }
+  .s4-info-row .k { width: 90px; color: var(--text-3); font-weight: 500; }
+  .s4-info-row .v { flex: 1; color: var(--text); font-weight: 600; }
+  .skills-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .s4-map-mini {
+    height: 110px;
+    border-radius: 14px;
+    background:
+      radial-gradient(circle at 50% 60%, rgba(31, 184, 176, 0.10), transparent 40%),
+      linear-gradient(180deg, #EEF2F7 0%, #E4EAF2 100%);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .s4-map-mini .pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); }
+  .s4-cta {
+    padding: 12px 20px 20px;
+    background: #fff;
+    border-top: 1px solid var(--line);
+    display: flex; gap: 10px; align-items: center;
+  }
+  .s4-fav {
+    width: 50px; height: 50px;
+    border-radius: 14px;
+    background: var(--line-soft);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .s4-cta .btn-teal { flex: 1; }
+
+  /* SCREEN 5 — WORKER PROFILE */
+  .s5-hero {
+    background: linear-gradient(180deg, #F4F6FA 0%, #fff 100%);
+    padding: 20px 24px 0;
+  }
+  .s5-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .s5-nav .nav-btn { background: #fff; box-shadow: var(--shadow-sm); }
+  .s5-prof { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+  .s5-avatar {
+    width: 80px; height: 80px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, #20A0B0, #0F8F88);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 800;
+    box-shadow: 0 10px 24px rgba(15, 143, 136, 0.30);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .s5-avatar .verified {
+    position: absolute;
+    bottom: -4px; right: -4px;
+    width: 26px; height: 26px;
+    background: var(--teal);
+    border: 3px solid #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .s5-prof-info { flex: 1; padding-top: 4px; }
+  .s5-prof-info h3 {
+    font-size: 20px; font-weight: 800;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .s5-prof-info .yrs { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .s5-rating { display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+  .s5-rating .num { font-size: 15px; font-weight: 800; }
+  .s5-rating .ct { font-size: 11px; color: var(--text-3); }
+  .s5-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    padding: 0 20px;
+    margin: 0 0 20px;
+  }
+  .stat-box {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-box .v { font-size: 18px; font-weight: 800; color: var(--navy); letter-spacing: -0.02em; }
+  .stat-box .l { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+  .stat-box.trust { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); color: #fff; border: none; }
+  .stat-box.trust .v { color: #fff; }
+  .stat-box.trust .l { color: rgba(255,255,255,0.85); }
+  .s5-body { padding: 0 20px; overflow-y: auto; flex: 1; }
+  .s5-sec { margin-bottom: 18px; }
+  .s5-sec h4 {
+    font-size: 12px; font-weight: 700; color: var(--navy);
+    margin-bottom: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .review-card {
+    background: var(--line-soft);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .review-card .rh { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .review-card .rh .nm { font-size: 12px; font-weight: 700; }
+  .review-card .rh .dt { font-size: 10px; color: var(--text-3); }
+  .review-card .rt { font-size: 11px; color: var(--text-2); line-height: 1.5; }
+  .s5-cta {
+    padding: 12px 20px 20px;
+    background: #fff;
+    border-top: 1px solid var(--line);
+    display: flex; gap: 10px;
+  }
+  .s5-cta .btn-outline { flex: 0 0 50px; padding: 0; width: 50px; height: 50px; }
+  .s5-cta .btn-teal { flex: 1; }
+
+  /* SCREEN 6 — CHAT */
+  .s6-head {
+    padding: 8px 16px 12px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .s6-head .nav-btn { background: var(--line-soft); width: 32px; height: 32px; flex-shrink: 0; }
+  .s6-head .chat-av {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4A6FA5, #2C4870);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .s6-head .chat-av .on {
+    position: absolute; bottom: 0; right: 0;
+    width: 10px; height: 10px; background: var(--green);
+    border: 2px solid #fff; border-radius: 50%;
+  }
+  .s6-head .info { flex: 1; min-width: 0; }
+  .s6-head .info h4 { font-size: 14px; font-weight: 700; }
+  .s6-head .info p { font-size: 10px; color: var(--green-dark); font-weight: 600; }
+  .s6-head .acts { display: flex; gap: 6px; }
+  .s6-head .acts .nav-btn { width: 36px; height: 36px; }
+  .s6-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 14px;
+    background: #F6F8FB;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .chat-date {
+    align-self: center;
+    background: rgba(11, 37, 69, 0.05);
+    color: var(--text-3);
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    margin: 4px 0;
+  }
+  .msg {
+    max-width: 75%;
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .msg.them { background: #fff; border: 1px solid var(--line); align-self: flex-start; border-bottom-left-radius: 6px; }
+  .msg.me { background: var(--navy); color: #fff; align-self: flex-end; border-bottom-right-radius: 6px; }
+  .msg-time { font-size: 9px; color: var(--text-3); margin-top: 2px; padding: 0 6px; }
+  .msg.me + .msg-time { align-self: flex-end; }
+  .offer-card {
+    align-self: flex-start;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 14px;
+    width: 86%;
+    box-shadow: var(--shadow-sm);
+    border-bottom-left-radius: 6px;
+  }
+  .offer-card .oc-head {
+    font-size: 10px; font-weight: 700;
+    color: var(--teal-dark); letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .offer-card .oc-rows {
+    border-radius: 10px;
+    background: var(--line-soft);
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .offer-card .oc-row {
+    display: flex; justify-content: space-between;
+    padding: 4px 0;
+    font-size: 11px;
+  }
+  .offer-card .oc-row .k { color: var(--text-3); }
+  .offer-card .oc-row .v { font-weight: 700; color: var(--text); }
+  .offer-card .oc-cta {
+    width: 100%;
+    background: var(--green-dark);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 10px;
+    font-size: 12px; font-weight: 700;
+    font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    cursor: pointer;
+  }
+  .s6-input {
+    background: #fff;
+    border-top: 1px solid var(--line);
+    padding: 10px 14px 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .s6-input .add {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--line-soft);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .s6-input .box {
+    flex: 1;
+    background: var(--line-soft);
+    border-radius: 20px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text-3);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .s6-input .send {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--teal-dark);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* SCREEN 7 — MATCH SUCCESS */
+  .s7-top {
+    background: linear-gradient(135deg, #0F8F88 0%, #1FB8B0 50%, #22A85C 100%);
+    color: #fff;
+    padding: 50px 24px 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .s7-top::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(255,255,255,0.15), transparent 50%),
+      radial-gradient(circle at 70% 80%, rgba(255,255,255,0.10), transparent 50%);
+  }
+  .s7-check {
+    width: 76px; height: 76px;
+    background: rgba(255, 255, 255, 0.20);
+    border: 2px solid rgba(255, 255, 255, 0.40);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+    position: relative; z-index: 1;
+    animation: bounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes bounceIn {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .s7-check .inner {
+    width: 56px; height: 56px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .s7-top h2 {
+    font-size: 24px; font-weight: 800;
+    margin-bottom: 8px;
+    position: relative; z-index: 1;
+  }
+  .s7-top p { font-size: 13px; opacity: 0.9; position: relative; z-index: 1; }
+  .s7-card {
+    background: #fff;
+    margin: -30px 16px 0;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(11, 37, 69, 0.10);
+    padding: 18px;
+    position: relative;
+    z-index: 2;
+  }
+  .s7-people {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .s7-people .av {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 18px;
+  }
+  .s7-people .av.a { background: linear-gradient(135deg, var(--navy), var(--navy-2)); }
+  .s7-people .av.b { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); }
+  .s7-people .conn { flex: 1; text-align: center; color: var(--teal-dark); font-size: 18px; font-weight: 800; }
+  .s7-people .nm { text-align: center; margin-top: 4px; font-size: 11px; font-weight: 700; color: var(--text); }
+  .s7-people .rl { font-size: 9px; color: var(--text-3); }
+  .s7-info-grid { margin-top: 14px; display: grid; gap: 10px; }
+  .s7-info-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    background: var(--line-soft);
+    border-radius: 12px;
+  }
+  .s7-info-row .ic {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .s7-info-row .tx { flex: 1; }
+  .s7-info-row .lb { font-size: 10px; color: var(--text-3); }
+  .s7-info-row .vl { font-size: 13px; font-weight: 700; color: var(--text); margin-top: 1px; }
+  .s7-status {
+    margin: 14px 16px 0;
+    padding: 12px 16px;
+    background: rgba(46, 204, 113, 0.10);
+    border-radius: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .s7-status .ico {
+    width: 32px; height: 32px;
+    background: var(--green-dark);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .s7-status .tx { flex: 1; }
+  .s7-status .tx h5 { font-size: 13px; font-weight: 700; color: var(--green-dark); }
+  .s7-status .tx p { font-size: 11px; color: var(--text-2); }
+  .s7-cta {
+    margin-top: auto;
+    padding: 16px 16px 20px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  /* SCREEN 8 — PROFILE */
+  .s8-head { padding: 8px 20px 16px; background: linear-gradient(180deg, #F4F6FA 0%, #fff 100%); }
+  .s8-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .s8-nav .nav-btn { background: #fff; box-shadow: var(--shadow-sm); }
+  .s8-nav h3 { font-size: 15px; font-weight: 700; }
+  .s8-prof { display: flex; align-items: center; gap: 14px; padding: 0 4px; }
+  .s8-avatar {
+    width: 70px; height: 70px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--navy), var(--teal-dark));
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 800;
+    box-shadow: 0 8px 18px rgba(11, 37, 69, 0.20);
+    flex-shrink: 0;
+  }
+  .s8-prof .pdata { flex: 1; }
+  .s8-prof h2 { font-size: 18px; font-weight: 800; }
+  .s8-prof .pid { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .s8-prof .ptags { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+  .s8-trust {
+    margin: 18px 20px 0;
+    background: linear-gradient(135deg, #0B2545 0%, #13315C 100%);
+    color: #fff;
+    border-radius: 18px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .s8-trust::after {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(31, 184, 176, 0.25), transparent 70%);
+  }
+  .s8-trust .tlbl {
+    font-size: 11px; color: rgba(255,255,255,0.7);
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+    position: relative; z-index: 1;
+  }
+  .s8-trust .tscore { display: flex; align-items: baseline; gap: 6px; position: relative; z-index: 1; }
+  .s8-trust .tscore .num { font-size: 36px; font-weight: 800; font-family: 'Inter', sans-serif; }
+  .s8-trust .tscore .max { font-size: 14px; opacity: 0.6; font-weight: 600; }
+  .s8-trust .tscore .pr {
+    margin-left: auto;
+    background: var(--teal);
+    color: #fff;
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-weight: 700;
+  }
+  .s8-trust .bar { margin-top: 14px; height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; position: relative; z-index: 1; }
+  .s8-trust .bar .fill { height: 100%; width: 86%; background: linear-gradient(90deg, var(--teal), var(--green)); border-radius: 3px; }
+  .s8-trust .tmeta { margin-top: 10px; display: flex; justify-content: space-between; font-size: 10px; color: rgba(255,255,255,0.7); position: relative; z-index: 1; }
+  .s8-grid { margin: 16px 20px 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .s8-stat {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .s8-stat .ic { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .s8-stat .ic.teal { background: rgba(31, 184, 176, 0.12); }
+  .s8-stat .ic.green { background: rgba(46, 204, 113, 0.12); }
+  .s8-stat .ic.warn { background: rgba(245, 158, 11, 0.14); }
+  .s8-stat .ic.navy { background: rgba(11, 37, 69, 0.08); }
+  .s8-stat .v { font-size: 16px; font-weight: 800; color: var(--navy); }
+  .s8-stat .l { font-size: 10px; color: var(--text-3); margin-top: 1px; }
+  .s8-section { margin: 18px 20px 0; }
+  .s8-section h4 {
+    font-size: 13px; font-weight: 700; color: var(--navy);
+    margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .s8-section h4 a { font-size: 11px; color: var(--teal-dark); font-weight: 600; }
+  .history-row {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .history-row .hic {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: var(--line-soft);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .history-row .htx { flex: 1; min-width: 0; }
+  .history-row .htx .tt { font-size: 12px; font-weight: 700; }
+  .history-row .htx .mt {
+    font-size: 10px; color: var(--text-3); margin-top: 2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .history-row .hpr { font-size: 13px; font-weight: 800; color: var(--navy); }
+  .s8-body { overflow-y: auto; flex: 1; padding-bottom: 20px; }
+
+  /* ============ TOAST ============ */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(40px);
+    background: rgba(11, 37, 69, 0.95);
+    backdrop-filter: blur(10px);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    pointer-events: none;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .toast .ico {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--teal);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1280px) {
+    .proto-app { grid-template-columns: 240px 1fr 280px; }
+  }
+  @media (max-width: 1024px) {
+    .proto-app { grid-template-columns: 1fr; }
+    .proto-sidebar, .proto-info { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="proto-app">
+
+  <!-- ============ SIDEBAR (FLOW) ============ -->
+  <aside class="proto-sidebar">
+    <div class="ps-brand">
+      <div class="ps-logo">
+        <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+          <path d="M14 4L4 9V19L14 24L24 19V9L14 4Z" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/>
+          <path d="M14 4V14L4 9" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" opacity="0.8"/>
+        </svg>
+      </div>
+      <div>
+        <h1>FieldMatch</h1>
+        <p>INTERACTIVE PROTOTYPE</p>
+      </div>
+    </div>
+
+    <div class="ps-section-title">SCREEN FLOW</div>
+    <div class="flow-list" id="flowList">
+      <div class="flow-node" data-jump="1"><div class="flow-num">01</div><div class="flow-text"><div class="nm">ロール選択</div><div class="ds">Onboarding</div></div></div>
+      <div class="flow-node" data-jump="2"><div class="flow-num">02</div><div class="flow-text"><div class="nm">FP ホーム</div><div class="ds">Field Partner Map</div></div></div>
+      <div class="flow-node" data-jump="3"><div class="flow-num">03</div><div class="flow-text"><div class="nm">発注側ホーム</div><div class="ds">Orderer Map</div></div></div>
+      <div class="flow-node" data-jump="4"><div class="flow-num">04</div><div class="flow-text"><div class="nm">案件詳細</div><div class="ds">Job Detail</div></div></div>
+      <div class="flow-node" data-jump="5"><div class="flow-num">05</div><div class="flow-text"><div class="nm">人材詳細</div><div class="ds">Worker Profile</div></div></div>
+      <div class="flow-node" data-jump="6"><div class="flow-num">06</div><div class="flow-text"><div class="nm">チャット</div><div class="ds">Chat & Offer</div></div></div>
+      <div class="flow-node" data-jump="7"><div class="flow-num">07</div><div class="flow-text"><div class="nm">マッチング成立</div><div class="ds">Match Success</div></div></div>
+      <div class="flow-node" data-jump="8"><div class="flow-num">08</div><div class="flow-text"><div class="nm">マイページ</div><div class="ds">Profile & Trust</div></div></div>
+    </div>
+
+    <div class="ps-section-title">LEGEND</div>
+    <div class="flow-legend">
+      <div class="legend-row"><div class="legend-dot" style="background: var(--teal);"></div>現在の画面</div>
+      <div class="legend-row"><div class="legend-dot" style="background: rgba(46, 204, 113, 0.4);"></div>訪問済み</div>
+      <div class="legend-row"><div class="legend-dot" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);"></div>未訪問</div>
+    </div>
+  </aside>
+
+  <!-- ============ STAGE ============ -->
+  <main class="proto-stage">
+    <div class="stage-top">
+      <button class="stage-btn" id="btnBack" title="戻る">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="stage-btn" id="btnHome" title="ホーム">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 13V7L8 3L13 7V13H10V10H6V13H3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="stage-title">
+        <h2 id="screenTitle">ロール選択画面</h2>
+        <p id="screenCode">01 / 08 · ONBOARDING</p>
+      </div>
+      <button class="stage-btn" id="btnReset" title="リセット">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8C3 5 5 3 8 3C10 3 12 4 13 6M13 3V6H10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 8C13 11 11 13 8 13C6 13 4 12 3 10M3 13V10H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <div class="stage-progress">
+      <div class="stage-progress-fill" id="progressFill" style="width: 12.5%;"></div>
+    </div>
+
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="screens-container" id="screensContainer">
+
+          <!-- ============ SCREEN 1 — ROLE SELECTION ============ -->
+          <div class="screen active" data-screen="1">
+            <div class="status-bar on-dark">
+              <span>9:41</span>
+              <span class="right">
+                <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M1 8.5h1.5V10H1V8.5zm3-2H5.5V10H4V6.5zm3-2.5h1.5V10H7V4zm3-2h1.5V10H10V2zm3-2h1.5v10H13V0z" fill="currentColor"/></svg>
+                <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><path d="M7.5 1.5C9.7 1.5 11.7 2.4 13.2 3.8L14.4 2.6C12.5 0.9 10.1 0 7.5 0S2.5 0.9 0.6 2.6L1.8 3.8C3.3 2.4 5.3 1.5 7.5 1.5z" fill="currentColor"/><circle cx="7.5" cy="9" r="1.5" fill="currentColor"/></svg>
+                <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="0.5" y="0.5" width="20" height="10" rx="2.5" stroke="currentColor" opacity="0.5"/><rect x="2" y="2" width="17" height="7" rx="1" fill="currentColor"/></svg>
+              </span>
+            </div>
+            <div class="s1-bg">
+              <div class="s1-logo">
+                <svg width="32" height="32" viewBox="0 0 28 28" fill="none">
+                  <path d="M14 4L4 9V19L14 24L24 19V9L14 4Z" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/>
+                  <path d="M14 4V14L4 9" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" opacity="0.8"/>
+                </svg>
+              </div>
+              <h1 class="s1-title">現場と人を、<br>もっと近くに。</h1>
+              <p class="s1-sub">FieldMatchは、近くの建設現場と<br>職人をリアルタイムでつなぐ<br>マッチングプラットフォームです。</p>
+              <p class="s1-question">利用方法を選択してください</p>
+
+              <div class="role-card primary" data-nav="3">
+                <div class="role-ico">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 21V11L12 4L21 11V21H14V14H10V21H3Z" stroke="#0F8F88" stroke-width="2" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="role-body">
+                  <h4>発注側として利用</h4>
+                  <p>現場監督・工事責任者の方</p>
+                </div>
+                <svg class="role-arrow" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M7 5L13 10L7 15" stroke="#0B2545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+
+              <div class="role-card" data-nav="2">
+                <div class="role-ico">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#1FB8B0" stroke-width="2"/><path d="M4 21C4 17 7.6 14 12 14C16.4 14 20 17 20 21" stroke="#1FB8B0" stroke-width="2" stroke-linecap="round"/></svg>
+                </div>
+                <div class="role-body">
+                  <h4>Field Partnerとして利用</h4>
+                  <p>一人親方・職人・補助作業員の方</p>
+                </div>
+                <svg class="role-arrow" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M7 5L13 10L7 15" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+
+              <div class="s1-bottom">すでにアカウントをお持ちですか？　<a>ログイン</a></div>
+            </div>
+          </div>
+
+          <!-- ============ SCREEN 2 — FIELD PARTNER HOME ============ -->
+          <div class="screen" data-screen="2">
+            <div class="status-bar">
+              <span>9:41</span>
+              <span class="right">
+                <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M1 8.5h1.5V10H1V8.5zm3-2H5.5V10H4V6.5zm3-2.5h1.5V10H7V4zm3-2h1.5V10H10V2zm3-2h1.5v10H13V0z" fill="currentColor"/></svg>
+                <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><circle cx="7.5" cy="9" r="1.5" fill="currentColor"/></svg>
+                <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="0.5" y="0.5" width="20" height="10" rx="2.5" stroke="currentColor" opacity="0.5"/><rect x="2" y="2" width="17" height="7" rx="1" fill="currentColor"/></svg>
+              </span>
+            </div>
+            <div class="scroll-area">
+              <div class="map">
+                <div class="map-grid"></div>
+                <div class="map-road" style="top: 30%; left: 0; width: 100%; height: 14px;"></div>
+                <div class="map-road" style="top: 65%; left: 0; width: 100%; height: 10px; transform: rotate(-2deg);"></div>
+                <div class="map-road" style="top: 0; left: 22%; width: 12px; height: 100%;"></div>
+                <div class="map-road" style="top: 0; left: 68%; width: 10px; height: 100%; transform: rotate(3deg);"></div>
+                <div class="map-block" style="top: 35%; left: 5%; width: 14%; height: 25%;"></div>
+                <div class="map-block" style="top: 40%; left: 28%; width: 32%; height: 22%;"></div>
+                <div class="map-block" style="top: 38%; left: 75%; width: 18%; height: 22%;"></div>
+                <div class="map-block" style="top: 70%; left: 8%; width: 12%; height: 18%;"></div>
+                <div class="map-block" style="top: 72%; left: 30%; width: 28%; height: 18%;"></div>
+                <div class="map-green" style="top: 12%; left: 38%; width: 90px; height: 90px;"></div>
+                <div class="user-dot" style="top: 52%; left: 50%;"></div>
+                <div class="map-pin" style="top: 38%; left: 30%;" data-nav="4"><div class="pin-bubble teal">¥12,000</div></div>
+                <div class="map-pin" style="top: 28%; left: 65%;" data-nav="4"><div class="pin-bubble">¥18,000</div></div>
+                <div class="map-pin" style="top: 60%; left: 80%;" data-nav="4"><div class="pin-bubble green">¥8,500</div></div>
+                <div class="map-pin" style="top: 70%; left: 18%;" data-nav="4"><div class="pin-bubble">¥15,000</div></div>
+              </div>
+
+              <div class="s2-top">
+                <div class="s2-search">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#0B2545" stroke-width="2"/><path d="M11 11L14 14" stroke="#0B2545" stroke-width="2" stroke-linecap="round"/></svg>
+                  <div class="s2-search-input"><strong>東京都・港区</strong> · 半径5km</div>
+                  <div class="s2-icon-btn"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3H12M3.5 7H10.5M5 11H9" stroke="#0B2545" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+                  <div class="s2-icon-btn"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1V2M7 12V13M2 7H1M13 7H12" stroke="#0B2545" stroke-width="1.8" stroke-linecap="round"/><circle cx="7" cy="7" r="4" stroke="#0B2545" stroke-width="1.8"/></svg><div class="badge">3</div></div>
+                </div>
+                <div class="s2-filters">
+                  <div class="filter-chip active"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5L4 7L8 3" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>すべて</div>
+                  <div class="filter-chip">半日</div>
+                  <div class="filter-chip">1日</div>
+                  <div class="filter-chip">荷揚げ</div>
+                  <div class="filter-chip">資材搬入</div>
+                </div>
+              </div>
+
+              <div class="s2-banner"><div class="num">3</div><span>近くに3件の新着案件</span></div>
+              <div class="s2-locate"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="4" stroke="#0B2545" stroke-width="2"/><path d="M10 1V3M10 17V19M1 10H3M17 10H19" stroke="#0B2545" stroke-width="2" stroke-linecap="round"/></svg></div>
+
+              <div class="s2-sheet">
+                <div class="sheet-handle"></div>
+                <div class="s2-sheet-head"><h3>あなたにおすすめの案件</h3><a>すべて見る ›</a></div>
+                <div class="job-cards">
+                  <div class="job-card featured" data-nav="4">
+                    <div class="jc-top">
+                      <div>
+                        <div class="jc-title">タワマン現場<br>荷揚げ補助スタッフ</div>
+                        <div class="jc-meta">📍 港区 · 1.2km</div>
+                      </div>
+                      <span class="pill" style="background: rgba(255,180,0,0.25); color: #FFB400;">★ おすすめ</span>
+                    </div>
+                    <div class="jc-row">
+                      <div class="jc-price"><span class="yen">¥</span>18,000<span class="unit">/日</span></div>
+                      <span class="pill" style="background: rgba(255,255,255,0.18); color: #fff;">1日</span>
+                    </div>
+                  </div>
+                  <div class="job-card" data-nav="4">
+                    <div class="jc-top">
+                      <div>
+                        <div class="jc-title">マンション改修<br>養生剥がし作業</div>
+                        <div class="jc-meta">📍 渋谷区 · 2.8km</div>
+                      </div>
+                      <span class="pill warn">急募</span>
+                    </div>
+                    <div class="jc-row">
+                      <div class="jc-price"><span class="yen">¥</span>12,000<span class="unit">/日</span></div>
+                      <span class="pill gray">半日</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tabbar">
+                <div class="tab active"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 19V10L11 4L19 10V19H13V14H9V19H3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>探す</div>
+                <div class="tab"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="5" width="16" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 9H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>予約</div>
+                <div class="tab" data-nav="6"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 17V6C4 5 5 4 6 4H16C17 4 18 5 18 6V13C18 14 17 15 16 15H8L4 18Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>メッセージ</div>
+                <div class="tab" data-nav="8"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M3 19C3 15.5 6.5 13 11 13C15.5 13 19 15.5 19 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>マイページ</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ SCREEN 3 — ORDERER HOME ============ -->
+          <div class="screen" data-screen="3">
+            <div class="status-bar">
+              <span>9:41</span>
+              <span class="right">
+                <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M1 8.5h1.5V10H1V8.5zm3-2H5.5V10H4V6.5zm3-2.5h1.5V10H7V4zm3-2h1.5V10H10V2zm3-2h1.5v10H13V0z" fill="currentColor"/></svg>
+                <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><circle cx="7.5" cy="9" r="1.5" fill="currentColor"/></svg>
+                <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="0.5" y="0.5" width="20" height="10" rx="2.5" stroke="currentColor" opacity="0.5"/><rect x="2" y="2" width="17" height="7" rx="1" fill="currentColor"/></svg>
+              </span>
+            </div>
+            <div class="scroll-area">
+              <div class="map">
+                <div class="map-grid"></div>
+                <div class="map-road" style="top: 25%; left: 0; width: 100%; height: 12px;"></div>
+                <div class="map-road" style="top: 58%; left: 0; width: 100%; height: 10px;"></div>
+                <div class="map-road" style="top: 0; left: 35%; width: 10px; height: 100%;"></div>
+                <div class="map-road" style="top: 0; left: 75%; width: 10px; height: 100%;"></div>
+                <div class="map-block" style="top: 28%; left: 8%; width: 22%; height: 26%;"></div>
+                <div class="map-block" style="top: 30%; left: 40%; width: 30%; height: 22%;"></div>
+                <div class="map-block" style="top: 30%; left: 80%; width: 16%; height: 22%;"></div>
+                <div class="map-block" style="top: 62%; left: 8%; width: 22%; height: 18%;"></div>
+                <div class="map-block" style="top: 62%; left: 40%; width: 30%; height: 18%;"></div>
+                <div class="map-green" style="top: 6%; left: 50%; width: 80px; height: 80px;"></div>
+                <div class="map-pin" style="top: 42%; left: 50%;"><div class="pin-bubble" style="background: #EF4444;">現場</div></div>
+                <div class="worker-avatar-pin" style="top: 28%; left: 24%;" data-nav="5"><div class="av" style="background: linear-gradient(135deg, #20A0B0, #0F8F88);">山</div><div class="status"></div></div>
+                <div class="worker-avatar-pin" style="top: 35%; left: 75%;" data-nav="5"><div class="av" style="background: linear-gradient(135deg, #4A6FA5, #2C4870);">佐</div><div class="status"></div></div>
+                <div class="worker-avatar-pin" style="top: 62%; left: 32%;" data-nav="5"><div class="av" style="background: linear-gradient(135deg, #5E8B73, #3F6951);">田</div><div class="status"></div></div>
+                <div class="worker-avatar-pin" style="top: 68%; left: 68%;" data-nav="5"><div class="av" style="background: linear-gradient(135deg, #8A6FA5, #5C4880);">鈴</div><div class="status"></div></div>
+              </div>
+
+              <div class="s3-top">
+                <div class="s3-greet">
+                  <div class="av">建</div>
+                  <div class="gtxt"><h4>こんにちは、建設一郎さん</h4><p>東京建設株式会社 · 現場監督</p></div>
+                  <div class="s2-icon-btn"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1V2M7 12V13M2 7H1M13 7H12" stroke="#0B2545" stroke-width="1.8" stroke-linecap="round"/><circle cx="7" cy="7" r="4" stroke="#0B2545" stroke-width="1.8"/></svg><div class="badge">2</div></div>
+                </div>
+                <div class="s3-req-box">
+                  <div class="icn"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2V14M2 8H14" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg></div>
+                  <div class="tx"><h5>新しい依頼を作成</h5><p>1分で職人を募集できます</p></div>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M5 3L11 8L5 13" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+                </div>
+              </div>
+
+              <div class="s3-sheet">
+                <div class="sheet-handle" style="margin-bottom: 8px;"></div>
+                <div class="s3-sheet-head"><h3>近くの待機中Field Partner</h3><span class="count">12人 · 半径3km</span></div>
+                <div class="s3-sheet-tabs">
+                  <div class="s3-tab active">おすすめ順</div>
+                  <div class="s3-tab">距離順</div>
+                  <div class="s3-tab">評価順</div>
+                </div>
+                <div class="worker-list">
+                  <div class="worker-row">
+                    <div class="wav g1">山<div class="ws"></div></div>
+                    <div class="wbody">
+                      <div class="wname">山田 健太
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5.5" fill="#1FB8B0"/><path d="M3.5 6L5 7.5L8.5 4.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </div>
+                      <div class="wmeta">
+                        <span class="star">★★★★★</span> 4.9
+                        <span class="dot"></span><span>0.8km</span>
+                        <span class="dot"></span><span>即対応可</span>
+                      </div>
+                      <div class="wskills"><span class="pill teal">荷揚げ</span><span class="pill gray">+2</span></div>
+                    </div>
+                    <div class="wact">
+                      <button class="mini-btn" data-nav="6">今すぐ依頼</button>
+                      <button class="mini-btn outline" data-nav="5">プロフ</button>
+                    </div>
+                  </div>
+                  <div class="worker-row">
+                    <div class="wav g2">佐<div class="ws"></div></div>
+                    <div class="wbody">
+                      <div class="wname">佐藤 大輔</div>
+                      <div class="wmeta">
+                        <span class="star">★★★★★</span> 4.8
+                        <span class="dot"></span><span>1.2km</span>
+                        <span class="dot"></span><span>14時〜</span>
+                      </div>
+                      <div class="wskills"><span class="pill teal">資材搬入</span><span class="pill gray">+3</span></div>
+                    </div>
+                    <div class="wact">
+                      <button class="mini-btn" data-nav="6">スカウト</button>
+                      <button class="mini-btn outline" data-nav="5">プロフ</button>
+                    </div>
+                  </div>
+                  <div class="worker-row">
+                    <div class="wav g3">田<div class="ws"></div></div>
+                    <div class="wbody">
+                      <div class="wname">田中 修</div>
+                      <div class="wmeta">
+                        <span class="star">★★★★☆</span> 4.6
+                        <span class="dot"></span><span>1.8km</span>
+                      </div>
+                      <div class="wskills"><span class="pill teal">養生剥がし</span></div>
+                    </div>
+                    <div class="wact"><button class="mini-btn" data-nav="6">スカウト</button></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ SCREEN 4 — JOB DETAIL ============ -->
+          <div class="screen" data-screen="4">
+            <div class="status-bar on-dark">
+              <span>9:41</span>
+              <span class="right">
+                <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M1 8.5h1.5V10H1V8.5zm3-2H5.5V10H4V6.5zm3-2.5h1.5V10H7V4zm3-2h1.5V10H10V2zm3-2h1.5v10H13V0z" fill="currentColor"/></svg>
+                <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><circle cx="7.5" cy="9" r="1.5" fill="currentColor"/></svg>
+                <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="0.5" y="0.5" width="20" height="10" rx="2.5" stroke="currentColor" opacity="0.5"/><rect x="2" y="2" width="17" height="7" rx="1" fill="currentColor"/></svg>
+              </span>
+            </div>
+            <div class="scroll-area">
+              <div class="s4-hero">
+                <div class="s4-nav">
+                  <div class="nav-btn" data-nav="back"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                  <h3>案件詳細</h3>
+                  <div class="nav-btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 14L3 9C1 7 1 4 3 3C5 1 7 2 8 4C9 2 11 1 13 3C15 4 15 7 13 9L8 14Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+                </div>
+                <div class="s4-tags">
+                  <span class="pill urgent">急募</span>
+                  <span class="pill">荷揚げ補助</span>
+                  <span class="pill">1日案件</span>
+                </div>
+                <h1 class="s4-title">タワーマンション現場<br>荷揚げ補助スタッフ募集</h1>
+                <div class="s4-company">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 10V5L6 2L10 5V10H7V7H5V10H2Z" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                  東京建設株式会社 · 港区
+                </div>
+              </div>
+
+              <div class="s4-pay-box">
+                <div>
+                  <div class="label">報酬</div>
+                  <div class="price"><span class="yen">¥</span>18,000<span class="unit"> /日</span></div>
+                </div>
+                <div class="ppl"><div class="nm">3名</div><div class="lb">募集人数</div></div>
+              </div>
+
+              <div class="s4-body">
+                <div class="s4-section">
+                  <h4>勤務情報</h4>
+                  <div class="s4-info-row"><span class="k">勤務日時</span><span class="v">2026年5月16日（土）<br>8:00 〜 17:00（休憩1h）</span></div>
+                  <div class="s4-info-row"><span class="k">現場住所</span><span class="v">東京都港区六本木7-2-3<br>○○タワー新築工事現場</span></div>
+                  <div class="s4-info-row"><span class="k">最寄駅</span><span class="v">六本木駅 徒歩5分</span></div>
+                  <div class="s4-info-row"><span class="k">交通費</span><span class="v">実費支給（上限¥1,500）</span></div>
+                </div>
+                <div class="s4-section">
+                  <h4>必要スキル・資格</h4>
+                  <div class="skills-grid">
+                    <span class="pill teal">荷揚げ経験あり</span>
+                    <span class="pill teal">フルハーネス所持</span>
+                    <span class="pill gray">玉掛け（歓迎）</span>
+                  </div>
+                </div>
+                <div class="s4-section">
+                  <h4>作業内容</h4>
+                  <p style="font-size: 12px; line-height: 1.7; color: var(--text-2);">内装資材（ボード・建材）の荷揚げ補助業務です。エレベーター稼働済みのため、台車での運搬作業がメインとなります。経験1年以上の方歓迎。</p>
+                </div>
+                <div class="s4-section">
+                  <h4>現場位置</h4>
+                  <div class="s4-map-mini">
+                    <div class="map-grid" style="opacity: 0.6;"></div>
+                    <div class="map-road" style="top: 50%; left: 0; width: 100%; height: 10px;"></div>
+                    <div class="map-road" style="top: 0; left: 50%; width: 8px; height: 100%;"></div>
+                    <div class="map-block" style="top: 12%; left: 10%; width: 30%; height: 30%;"></div>
+                    <div class="map-block" style="top: 60%; left: 60%; width: 30%; height: 28%;"></div>
+                    <div class="pin"><div class="pin-bubble" style="background: #EF4444;">六本木7-2-3</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="s4-cta">
+                <div class="s4-fav"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 17L3 10C1 8 1 5 3 3C5 1 8 1 10 3C12 1 15 1 17 3C19 5 19 8 17 10L10 17Z" stroke="#0B2545" stroke-width="2" stroke-linejoin="round"/></svg></div>
+                <button class="btn btn-teal" data-nav="6">応募する　·　ステップ確認</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ SCREEN 5 — WORKER PROFILE ============ -->
+          <div class="screen" data-screen="5">
+            <div class="status-bar">
+              <span>9:41</span>
+              <span class="right">
+                <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M1 8.5h1.5V10H1V8.5zm3-2H5.5V10H4V6.5zm3-2.5h1.5V10H7V4zm3-2h1.5V10H10V2zm3-2h1.5v10H13V0z" fill="currentColor"/></svg>
+                <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><circle cx="7.5" cy="9" r="1.5" fill="currentColor"/></svg>
+                <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="0.5" y="0.5" width="20" height="10" rx="2.5" stroke="currentColor" opacity="0.5"/><rect x="2" y="2" width="17" height="7" rx="1" fill="currentColor"/></svg>
+              </span>
+            </div>
+            <div class="scroll-area">
+              <div class="s5-hero">
+                <div class="s5-nav">
+                  <div class="nav-btn" data-nav="back"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="#0B2545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                  <div style="display: flex; gap: 8px;">
+                    <div class="nav-btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 14L3 9C1 7 1 4 3 3C5 1 7 2 8 4C9 2 11 1 13 3C15 4 15 7 13 9L8 14Z" stroke="#0B2545" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+                    <div class="nav-btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="3" r="1.5" fill="#0B2545"/><circle cx="8" cy="8" r="1.5" fill="#0B2545"/><circle cx="8" cy="13" r="1.5" fill="#0B2545"/></svg></div>
+                  </div>
+                </div>
+                <div class="s5-prof">
+                  <div class="s5-avatar">山<div class="verified"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6L5 8L9 4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+                  <div class="s5-prof-info">
+                    <h3>山田 健太
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L8.7 4.7L13 5.3L10 8.3L10.7 12.5L7 10.5L3.3 12.5L4 8.3L1 5.3L5.3 4.7L7 1Z" fill="#FFB400"/></svg>
+                    </h3>
+                    <p class="yrs">大工 / 一人親方 · 経験8年</p>
+                    <div class="s5-rating"><span class="star">★★★★★</span><span class="num">4.9</span><span class="ct">（127件のレビュー）</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="s5-stats">
+                <div class="stat-box"><div class="v">142</div><div class="l">完了案件</div></div>
+                <div class="stat-box"><div class="v">98%</div><div class="l">出席率</div></div>
+                <div class="stat-box trust"><div class="v">A+</div><div class="l">信頼スコア</div></div>
+              </div>
+              <div class="s5-body">
+                <div class="s5-sec">
+                  <h4>対応可能スキル</h4>
+                  <div class="skills-grid">
+                    <span class="pill teal">荷揚げ</span><span class="pill teal">資材搬入</span><span class="pill teal">解体補助</span><span class="pill teal">養生</span><span class="pill teal">大工補助</span>
+                  </div>
+                </div>
+                <div class="s5-sec">
+                  <h4>保有資格</h4>
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--line-soft); border-radius: 10px;">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#0F8F88" stroke-width="1.8"/><path d="M5 8L7 10L11 6" stroke="#0F8F88" stroke-width="1.8" stroke-linecap="round"/></svg>
+                      <span style="font-size: 12px; font-weight: 600;">玉掛け技能講習修了</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--line-soft); border-radius: 10px;">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#0F8F88" stroke-width="1.8"/><path d="M5 8L7 10L11 6" stroke="#0F8F88" stroke-width="1.8" stroke-linecap="round"/></svg>
+                      <span style="font-size: 12px; font-weight: 600;">フルハーネス特別教育修了</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="s5-sec">
+                  <h4>過去レビュー</h4>
+                  <div class="review-card">
+                    <div class="rh"><span class="nm">○○建設 / 田村様</span><span class="dt">3日前</span></div>
+                    <div class="rt">時間通りに来てくれて、作業も丁寧。次もぜひお願いしたいです。</div>
+                  </div>
+                  <div class="review-card">
+                    <div class="rh"><span class="nm">△△工務店 / 鈴木様</span><span class="dt">1週間前</span></div>
+                    <div class="rt">経験豊富で頼りになる職人さん。コミュニケーションもスムーズでした。</div>
+                  </div>
+                </div>
+              </div>
+              <div class="s5-cta">
+                <button class="btn btn-outline" data-nav="6"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 16V5C4 4 5 3 6 3H14C15 3 16 4 16 5V11C16 12 15 13 14 13H8L4 17V16Z" stroke="#0B2545" stroke-width="2" stroke-linejoin="round"/></svg></button>
+                <button class="btn btn-teal" data-nav="6">スカウトする</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ SCREEN 6 — CHAT ============ -->
+          <div class="screen" data-screen="6">
+            <div class="status-bar">
+              <span>9:41</span>
+              <span class="right">
+                <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M1 8.5h1.5V10H1V8.5zm3-2H5.5V10H4V6.5zm3-2.5h1.5V10H7V4zm3-2h1.5V10H10V2zm3-2h1.5v10H13V0z" fill="currentColor"/></svg>
+                <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><circle cx="7.5" cy="9" r="1.5" fill="currentColor"/></svg>
+                <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="0.5" y="0.5" width="20" height="10" rx="2.5" stroke="currentColor" opacity="0.5"/><rect x="2" y="2" width="17" height="7" rx="1" fill="currentColor"/></svg>
+              </span>
+            </div>
+            <div class="s6-head">
+              <div class="nav-btn" data-nav="back"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="#0B2545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="chat-av">山<div class="on"></div></div>
+              <div class="info"><h4>山田 健太</h4><p>● オンライン</p></div>
+              <div class="acts">
+                <div class="nav-btn" style="background: var(--line-soft);"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 7C4 4 6 2 8 2C10 2 12 4 12 7V9C12 11 13 12 13 12H3C3 12 4 11 4 9V7Z" stroke="#0B2545" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+                <div class="nav-btn" style="background: var(--line-soft);"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 6L5 4H11L13 6V11C13 12 12 13 11 13H5C4 13 3 12 3 11V6Z" stroke="#0B2545" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+              </div>
+            </div>
+            <div class="s6-body">
+              <div class="chat-date">2026年5月14日</div>
+              <div class="msg them">はじめまして、案件にご応募いただきありがとうございます。</div>
+              <div class="msg them">5/16（土）8:00〜17:00、六本木の現場での荷揚げ補助のお仕事でお間違いないでしょうか？</div>
+              <span class="msg-time">10:24</span>
+              <div class="msg me">はい、お間違いありません。よろしくお願いします。</div>
+              <span class="msg-time">10:26</span>
+              <div class="msg me">交通費はどのように支給されますか？</div>
+              <div class="msg them">交通費は当日現金にて実費支給（上限¥1,500）となります。</div>
+              <div class="offer-card">
+                <div class="oc-head">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#0F8F88" stroke-width="2" stroke-linecap="round"/></svg>
+                  条件確認
+                </div>
+                <div class="oc-rows">
+                  <div class="oc-row"><span class="k">日時</span><span class="v">5/16（土）8:00〜17:00</span></div>
+                  <div class="oc-row"><span class="k">報酬</span><span class="v">¥18,000 /日</span></div>
+                  <div class="oc-row"><span class="k">交通費</span><span class="v">実費 上限¥1,500</span></div>
+                  <div class="oc-row"><span class="k">集合場所</span><span class="v">六本木7-2-3 現場入口</span></div>
+                </div>
+                <button class="oc-cta" data-nav="7">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7L5.5 9.5L11 4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  条件を確定する
+                </button>
+              </div>
+            </div>
+            <div class="s6-input">
+              <div class="add"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3V15M3 9H15" stroke="#0B2545" stroke-width="2" stroke-linecap="round"/></svg></div>
+              <div class="box"><span>メッセージを入力...</span><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5" stroke="#8A93A6" stroke-width="1.5"/><circle cx="6" cy="7" r="0.6" fill="#8A93A6"/><circle cx="10" cy="7" r="0.6" fill="#8A93A6"/><path d="M5.5 10C6 10.7 7 11 8 11C9 11 10 10.7 10.5 10" stroke="#8A93A6" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+              <div class="send"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8L14 2L11 14L8 9L2 8Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+            </div>
+          </div>
+
+          <!-- ============ SCREEN 7 — MATCH SUCCESS ============ -->
+          <div class="screen" data-screen="7">
+            <div class="status-bar on-dark">
+              <span>9:41</span>
+              <span class="right">
+                <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M1 8.5h1.5V10H1V8.5zm3-2H5.5V10H4V6.5zm3-2.5h1.5V10H7V4zm3-2h1.5V10H10V2zm3-2h1.5v10H13V0z" fill="currentColor"/></svg>
+                <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><circle cx="7.5" cy="9" r="1.5" fill="currentColor"/></svg>
+                <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="0.5" y="0.5" width="20" height="10" rx="2.5" stroke="currentColor" opacity="0.5"/><rect x="2" y="2" width="17" height="7" rx="1" fill="currentColor"/></svg>
+              </span>
+            </div>
+            <div class="scroll-area" style="display: flex; flex-direction: column;">
+              <div class="s7-top">
+                <div class="s7-check"><div class="inner"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M7 14L12 19L21 9" stroke="#0F8F88" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+                <h2>マッチング成立！</h2>
+                <p>条件が確定しました</p>
+              </div>
+              <div class="s7-card">
+                <div class="s7-people">
+                  <div style="text-align: center;">
+                    <div class="av a">建</div>
+                    <div class="nm" style="margin-top: 6px;">東京建設</div>
+                    <div class="rl">発注側</div>
+                  </div>
+                  <div class="conn"><svg width="28" height="20" viewBox="0 0 28 20" fill="none"><path d="M2 10H26M18 4L26 10L18 16" stroke="#1FB8B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                  <div style="text-align: center;">
+                    <div class="av b">山</div>
+                    <div class="nm" style="margin-top: 6px;">山田 健太</div>
+                    <div class="rl">Field Partner</div>
+                  </div>
+                </div>
+                <div class="s7-info-grid">
+                  <div class="s7-info-row"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="#0F8F88" stroke-width="1.8"/><path d="M2 6H14M5 1V4M11 1V4" stroke="#0F8F88" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="tx"><div class="lb">集合日時</div><div class="vl">5/16（土）07:45</div></div></div>
+                  <div class="s7-info-row"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 14C8 14 13 9 13 6C13 3 11 1 8 1C5 1 3 3 3 6C3 9 8 14 8 14Z" stroke="#0F8F88" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="6" r="2" stroke="#0F8F88" stroke-width="1.8"/></svg></div><div class="tx"><div class="lb">集合場所</div><div class="vl">六本木7-2-3 現場入口</div></div></div>
+                  <div class="s7-info-row"><div class="ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2V8L12 10" stroke="#0F8F88" stroke-width="1.8" stroke-linecap="round"/><circle cx="8" cy="8" r="6" stroke="#0F8F88" stroke-width="1.8"/></svg></div><div class="tx"><div class="lb">勤務時間</div><div class="vl">8:00 〜 17:00（休憩1h）</div></div></div>
+                  <div class="s7-info-row" style="background: rgba(46, 204, 113, 0.08);"><div class="ic" style="background: var(--green-dark);"><span style="color: #fff; font-weight: 800; font-size: 11px;">¥</span></div><div class="tx"><div class="lb">確定報酬</div><div class="vl">¥18,000 ＋ 交通費</div></div></div>
+                </div>
+              </div>
+              <div class="s7-status">
+                <div class="ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 8L7 11L12 5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="tx"><h5>電子契約 締結済み</h5><p>契約書はマイページから確認できます</p></div>
+              </div>
+              <div class="s7-cta">
+                <button class="btn btn-teal" data-nav="toast">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 9L9 2L16 9M5 8V15H8V11H10V15H13V8" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+                  現場へ向かう（ナビ開始）
+                </button>
+                <button class="btn btn-ghost" data-nav="8">詳細を見る</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ SCREEN 8 — PROFILE ============ -->
+          <div class="screen" data-screen="8">
+            <div class="status-bar">
+              <span>9:41</span>
+              <span class="right">
+                <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M1 8.5h1.5V10H1V8.5zm3-2H5.5V10H4V6.5zm3-2.5h1.5V10H7V4zm3-2h1.5V10H10V2zm3-2h1.5v10H13V0z" fill="currentColor"/></svg>
+                <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><circle cx="7.5" cy="9" r="1.5" fill="currentColor"/></svg>
+                <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="0.5" y="0.5" width="20" height="10" rx="2.5" stroke="currentColor" opacity="0.5"/><rect x="2" y="2" width="17" height="7" rx="1" fill="currentColor"/></svg>
+              </span>
+            </div>
+            <div class="scroll-area">
+              <div class="s8-head">
+                <div class="s8-nav">
+                  <div class="nav-btn" data-nav="back"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="#0B2545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                  <h3>マイページ</h3>
+                  <div class="nav-btn"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" stroke="#0B2545" stroke-width="1.8"/><path d="M8 1V3M8 13V15M1 8H3M13 8H15" stroke="#0B2545" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+                </div>
+                <div class="s8-prof">
+                  <div class="s8-avatar">山</div>
+                  <div class="pdata">
+                    <h2>山田 健太</h2>
+                    <div class="pid">FieldMatch ID · #FM-1042</div>
+                    <div class="ptags"><span class="pill teal">本人確認済</span><span class="pill green">保険加入済</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="s8-body">
+                <div class="s8-trust">
+                  <div class="tlbl"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L9 4L12 5L9.5 7.5L10 11L7 9.5L4 11L4.5 7.5L2 5L5 4L7 1Z" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>TRUST SCORE</div>
+                  <div class="tscore"><span class="num">86</span><span class="max">/ 100</span><span class="pr">A+</span></div>
+                  <div class="bar"><div class="fill"></div></div>
+                  <div class="tmeta"><span>前月比 +4</span><span>上位 8% の Field Partner</span></div>
+                </div>
+                <div class="s8-grid">
+                  <div class="s8-stat"><div class="ic teal"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 15V8L9 4L15 8V15H11V11H7V15H3Z" stroke="#0F8F88" stroke-width="1.8" stroke-linejoin="round"/></svg></div><div><div class="v">142</div><div class="l">完了案件</div></div></div>
+                  <div class="s8-stat"><div class="ic warn"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2L11 6L15 6.5L12 9.5L13 14L9 12L5 14L6 9.5L3 6.5L7 6L9 2Z" fill="#F59E0B"/></svg></div><div><div class="v">4.9</div><div class="l">平均評価</div></div></div>
+                  <div class="s8-stat"><div class="ic green"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 9L7 12L14 5" stroke="#22A85C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><div class="v">98%</div><div class="l">出席率</div></div></div>
+                  <div class="s8-stat"><div class="ic navy"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2V9L13 11" stroke="#0B2545" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="9" r="7" stroke="#0B2545" stroke-width="1.8"/></svg></div><div><div class="v">8年</div><div class="l">経験年数</div></div></div>
+                </div>
+                <div class="s8-section">
+                  <h4>取得スキル・資格 <a>編集</a></h4>
+                  <div class="skills-grid">
+                    <span class="pill teal">荷揚げ</span><span class="pill teal">資材搬入</span><span class="pill teal">解体補助</span><span class="pill teal">大工補助</span><span class="pill navy">玉掛け</span><span class="pill navy">フルハーネス</span>
+                  </div>
+                </div>
+                <div class="s8-section">
+                  <h4>過去案件履歴 <a>すべて見る</a></h4>
+                  <div class="history-row">
+                    <div class="hic" style="background: rgba(31, 184, 176, 0.12);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 16V9L10 5L17 9V16H12V12H8V16H3Z" stroke="#0F8F88" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+                    <div class="htx"><div class="tt">タワマン 荷揚げ補助</div><div class="mt"><span>5/10 完了</span><span class="dot" style="width:3px;height:3px;border-radius:50%;background:var(--text-3);"></span><span class="star">★★★★★</span></div></div>
+                    <div class="hpr">¥18,000</div>
+                  </div>
+                  <div class="history-row">
+                    <div class="hic" style="background: rgba(46, 204, 113, 0.12);"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 4H15V16H5V4Z M8 8H12 M8 11H12" stroke="#22A85C" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+                    <div class="htx"><div class="tt">マンション改修 養生剥がし</div><div class="mt"><span>5/3 完了</span><span class="dot" style="width:3px;height:3px;border-radius:50%;background:var(--text-3);"></span><span class="star">★★★★★</span></div></div>
+                    <div class="hpr">¥12,000</div>
+                  </div>
+                </div>
+              </div>
+              <div class="tabbar">
+                <div class="tab" data-nav="2"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 19V10L11 4L19 10V19H13V14H9V19H3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>探す</div>
+                <div class="tab"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="5" width="16" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 9H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>予約</div>
+                <div class="tab" data-nav="6"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 17V6C4 5 5 4 6 4H16C17 4 18 5 18 6V13C18 14 17 15 16 15H8L4 18Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>メッセージ</div>
+                <div class="tab active"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M3 19C3 15.5 6.5 13 11 13C15.5 13 19 15.5 19 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>マイページ</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="hint-bar">
+      💡 ボタン・カード・ピンをタップして遷移を確認できます　<strong>(B: 戻る / H: ホーム / R: リセット / 1-8: 直接ジャンプ)</strong>
+    </div>
+  </main>
+
+  <!-- ============ INFO PANEL ============ -->
+  <aside class="proto-info">
+    <div class="pi-section">
+      <div class="pi-label">CURRENT SCREEN</div>
+      <div class="pi-card">
+        <h3 id="infoTitle">ロール選択画面</h3>
+        <p id="infoDesc">アプリ起動後の最初の画面。ユーザーが「発注側」か「Field Partner側」かを選択することで、以降の体験が分岐します。</p>
+      </div>
+    </div>
+
+    <div class="pi-section">
+      <div class="pi-label">AVAILABLE ACTIONS</div>
+      <div class="transitions-list" id="transitionsList"></div>
+    </div>
+
+    <div class="pi-section">
+      <div class="pi-label">PROTOTYPE OPTIONS</div>
+      <div class="pi-toggle" id="hotspotToggle">
+        <span>タップ可能箇所をハイライト</span>
+        <div class="switch"></div>
+      </div>
+    </div>
+
+    <div class="pi-section">
+      <div class="pi-label">SHORTCUTS</div>
+      <div class="pi-card" style="font-size: 11px; line-height: 1.8;">
+        <div style="display: flex; justify-content: space-between; color: rgba(255,255,255,0.6);"><span>戻る</span><kbd style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: 'Inter', sans-serif; font-size: 10px;">B / ←</kbd></div>
+        <div style="display: flex; justify-content: space-between; color: rgba(255,255,255,0.6);"><span>ホーム</span><kbd style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: 'Inter', sans-serif; font-size: 10px;">H</kbd></div>
+        <div style="display: flex; justify-content: space-between; color: rgba(255,255,255,0.6);"><span>リセット</span><kbd style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: 'Inter', sans-serif; font-size: 10px;">R</kbd></div>
+        <div style="display: flex; justify-content: space-between; color: rgba(255,255,255,0.6);"><span>画面ジャンプ</span><kbd style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: 'Inter', sans-serif; font-size: 10px;">1 - 8</kbd></div>
+        <div style="display: flex; justify-content: space-between; color: rgba(255,255,255,0.6);"><span>ホットスポット</span><kbd style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: 'Inter', sans-serif; font-size: 10px;">Space</kbd></div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<div class="toast" id="toast">
+  <div class="ico"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6L5 8L9 4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <span id="toastText">ナビを開始しました</span>
+</div>
+
+<script>
+  const screenData = {
+    1: {
+      title: 'ロール選択画面',
+      code: 'ONBOARDING',
+      desc: 'アプリ起動後の最初の画面。ユーザーが「発注側」か「Field Partner側」かを選択することで、以降の体験が分岐します。',
+      transitions: [
+        { label: '発注側として利用', to: 3 },
+        { label: 'Field Partnerとして利用', to: 2 },
+      ]
+    },
+    2: {
+      title: 'Field Partner ホーム画面',
+      code: 'FIELD PARTNER MAP',
+      desc: '職人側のメイン画面。地図上の価格ピン、案件カード、メッセージタブから次の画面へ進めます。',
+      transitions: [
+        { label: '地図上の価格ピン', to: 4, hint: '案件詳細へ' },
+        { label: 'おすすめ案件カード', to: 4, hint: '案件詳細へ' },
+        { label: 'メッセージタブ', to: 6, hint: 'チャットへ' },
+        { label: 'マイページタブ', to: 8, hint: 'プロフィールへ' },
+      ]
+    },
+    3: {
+      title: '発注側ホーム画面',
+      code: 'ORDERER MAP',
+      desc: '現場監督側のメイン画面。地図上の職人アバター、または下部リストの「今すぐ依頼」「プロフ」から次の画面へ。',
+      transitions: [
+        { label: '地図上の職人アバター', to: 5, hint: '人材詳細へ' },
+        { label: 'プロフ ボタン', to: 5, hint: '人材詳細へ' },
+        { label: '今すぐ依頼 / スカウト', to: 6, hint: 'チャットへ' },
+      ]
+    },
+    4: {
+      title: '案件詳細画面',
+      code: 'JOB DETAIL',
+      desc: '案件の勤務情報・スキル要件・現場位置を確認する画面。応募ボタンからチャット画面へ移行します。',
+      transitions: [
+        { label: '応募する ボタン', to: 6, hint: 'チャットへ' },
+        { label: '戻る', to: 'back' },
+      ]
+    },
+    5: {
+      title: '人材詳細画面',
+      code: 'WORKER PROFILE',
+      desc: '職人のプロフィール・実績・信頼スコア・レビューを確認。スカウトボタンでチャットへ。',
+      transitions: [
+        { label: 'スカウトする ボタン', to: 6, hint: 'チャットへ' },
+        { label: '戻る', to: 'back' },
+      ]
+    },
+    6: {
+      title: 'チャット画面',
+      code: 'CHAT & OFFER',
+      desc: '発注側と職人が条件交渉する画面。条件確認カードの「条件を確定する」でマッチング成立へ。',
+      transitions: [
+        { label: '条件を確定する ボタン', to: 7, hint: 'マッチング成立へ' },
+        { label: '戻る', to: 'back' },
+      ]
+    },
+    7: {
+      title: 'マッチング成立画面',
+      code: 'MATCH SUCCESS',
+      desc: '電子契約が締結された確認画面。当日のナビ開始、または詳細（マイページ）へ。',
+      transitions: [
+        { label: '現場へ向かう', to: 'toast', hint: 'ナビ起動（モック）' },
+        { label: '詳細を見る', to: 8, hint: 'マイページへ' },
+      ]
+    },
+    8: {
+      title: 'マイページ / 評価画面',
+      code: 'PROFILE & TRUST',
+      desc: 'ユーザー自身のプロフィール。Trust Score・実績・スキルが集約された信頼性のメイン指標です。',
+      transitions: [
+        { label: '探すタブ', to: 2 },
+        { label: 'メッセージタブ', to: 6 },
+        { label: '戻る', to: 'back' },
+      ]
+    },
+  };
+
+  let currentScreen = 1;
+  let history = [1];
+  let visited = new Set([1]);
+
+  const screens = document.querySelectorAll('.screen');
+  const flowNodes = document.querySelectorAll('.flow-node');
+  const progressFill = document.getElementById('progressFill');
+  const screenTitle = document.getElementById('screenTitle');
+  const screenCode = document.getElementById('screenCode');
+  const infoTitle = document.getElementById('infoTitle');
+  const infoDesc = document.getElementById('infoDesc');
+  const transitionsList = document.getElementById('transitionsList');
+  const btnBack = document.getElementById('btnBack');
+  const btnHome = document.getElementById('btnHome');
+  const btnReset = document.getElementById('btnReset');
+  const hotspotToggle = document.getElementById('hotspotToggle');
+  const screensContainer = document.getElementById('screensContainer');
+  const toast = document.getElementById('toast');
+  const toastText = document.getElementById('toastText');
+
+  function showScreen(n, pushHistory = true) {
+    if (n === currentScreen) return;
+    const prev = currentScreen;
+    const prevEl = document.querySelector(`.screen[data-screen="${prev}"]`);
+    const nextEl = document.querySelector(`.screen[data-screen="${n}"]`);
+
+    if (prevEl) {
+      prevEl.classList.remove('active');
+      prevEl.classList.add('exit-left');
+      setTimeout(() => prevEl.classList.remove('exit-left'), 400);
+    }
+    if (nextEl) nextEl.classList.add('active');
+
+    currentScreen = n;
+    visited.add(n);
+    if (pushHistory) history.push(n);
+    updateUI();
+  }
+
+  function goBack() {
+    if (history.length <= 1) return;
+    history.pop();
+    const prev = history[history.length - 1];
+    showScreen(prev, false);
+  }
+
+  function goHome() {
+    history = [1];
+    showScreen(1, false);
+  }
+
+  function reset() {
+    visited = new Set([1]);
+    history = [1];
+    showScreen(1, false);
+  }
+
+  function showToast(text) {
+    toastText.textContent = text;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  function updateUI() {
+    const data = screenData[currentScreen];
+    screenTitle.textContent = data.title;
+    screenCode.textContent = `0${currentScreen} / 08 · ${data.code}`;
+    infoTitle.textContent = data.title;
+    infoDesc.textContent = data.desc;
+    progressFill.style.width = (currentScreen / 8 * 100) + '%';
+
+    flowNodes.forEach(node => {
+      const num = parseInt(node.dataset.jump);
+      node.classList.remove('active', 'visited');
+      if (num === currentScreen) node.classList.add('active');
+      else if (visited.has(num)) node.classList.add('visited');
+    });
+
+    transitionsList.innerHTML = '';
+    data.transitions.forEach(t => {
+      const item = document.createElement('div');
+      item.className = 'trans-item';
+      const targetLabel = t.to === 'back' ? '戻る' : t.to === 'toast' ? 'トースト表示' : `画面 ${String(t.to).padStart(2, '0')}`;
+      item.innerHTML = `
+        <span style="flex:1;">${t.label}</span>
+        <span class="arrow">→</span>
+        <span class="target">${targetLabel}</span>
+      `;
+      item.addEventListener('click', () => handleNav(t.to));
+      transitionsList.appendChild(item);
+    });
+
+    btnBack.disabled = history.length <= 1;
+  }
+
+  function handleNav(target) {
+    if (target === 'back') {
+      goBack();
+    } else if (target === 'toast') {
+      showToast('🗺  ナビアプリを起動しました（モック）');
+    } else {
+      showScreen(parseInt(target));
+    }
+  }
+
+  // attach data-nav handlers (event delegation on container)
+  screensContainer.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-nav]');
+    if (!el) return;
+    e.stopPropagation();
+    const t = el.dataset.nav;
+    handleNav(t);
+  });
+
+  // flow node jumps
+  flowNodes.forEach(node => {
+    node.addEventListener('click', () => {
+      const n = parseInt(node.dataset.jump);
+      showScreen(n);
+    });
+  });
+
+  btnBack.addEventListener('click', goBack);
+  btnHome.addEventListener('click', goHome);
+  btnReset.addEventListener('click', reset);
+
+  hotspotToggle.addEventListener('click', () => {
+    hotspotToggle.classList.toggle('on');
+    screensContainer.classList.toggle('show-hotspots');
+  });
+
+  // keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'b' || e.key === 'B' || e.key === 'ArrowLeft') goBack();
+    else if (e.key === 'h' || e.key === 'H') goHome();
+    else if (e.key === 'r' || e.key === 'R') reset();
+    else if (e.key === ' ') {
+      e.preventDefault();
+      hotspotToggle.click();
+    }
+    else if (/^[1-8]$/.test(e.key)) showScreen(parseInt(e.key));
+  });
+
+  updateUI();
+</script>
+
+</body>
+</html>
